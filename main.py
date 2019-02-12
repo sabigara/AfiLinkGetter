@@ -29,13 +29,19 @@ root.geometry("600x600")
 
 panel = tk.Label(root)
 
-def main(keywords: str) -> int:
+def main(keywords: str, get_am=True, get_sh=True) -> int:
     setup_tkinter()
 
-    am: namedtuple = get_product_am(keywords)
-    sh: namedtuple = get_product_sh(keywords)
+    img_urls: [str] = []
+    am: namedtuple = None
+    sh: namedtuple = None
+    if get_am:
+        am: namedtuple = get_product_am(keywords)
+        img_urls += am.img_urls
+    if get_sh:
+        sh: namedtuple = get_product_sh(keywords)
+        img_urls += sh.img_urls
 
-    img_urls = am.img_urls + sh.img_urls
     img_url = prompt_choose_img(img_urls)
 
     short_code = create_shortcode(am=am, sh=sh, img_url=img_url)
@@ -49,7 +55,7 @@ def get_product_am(keywords: str) -> namedtuple:
     products = search_product_am(keywords)
     product = prompt_choose_product_am(products)
 
-    afi_url = product.offer_url
+    afi_url = product.detail_page_url
 
     am = namedtuple('am', ('product_url', 'img_urls'))
     am.product_url = afi_url
@@ -103,8 +109,15 @@ def prompt_choose_img(img_urls: [str]) -> str:
 
     return img_urls[image_index]
 
-def create_shortcode(am: namedtuple, sh: namedtuple, img_url: str) -> str:
-    return f'[afi amurl="{am.product_url}" shurl="{sh.product_url}" img_url="{img_url}"]'
+def create_shortcode(img_url: str, am: namedtuple, sh: namedtuple) -> str:
+    am_product_url = ''
+    sh_product_url = ''
+    if am:
+        am_product_url = am.product_url
+    if sh:
+        sh_product_url = sh.product_url
+
+    return f'[afi amurl="{am_product_url}" shurl="{sh_product_url}" img_url="{img_url}"]'
 
 def output(short_code: str) -> None:
     process = subprocess.Popen('pbcopy', env={'LANG': 'en_US.UTF-8'}, stdin=subprocess.PIPE)
@@ -149,8 +162,16 @@ def update_img():
 
 
 if __name__ == '__main__':
+    keywords = ''    
+    if len(sys.argv) > 2:
+        keywords = sys.argv[2]
+        if sys.argv[1] == 'a':
+            main(keywords, True, False)
+        elif sys.argv[1] == 's':
+            main(keywords, False, True)
+    elif len(sys.argv) == 2:
+        keywords = sys.argv[1]
+        main(keywords)
+    else:
+        sys.exit('Arguments error')
 
-    if len(sys.argv) == 1:
-        sys.exit('キーワードを入力してください')
-
-    main(sys.argv[1])
